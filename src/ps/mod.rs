@@ -138,7 +138,7 @@ pub fn slugify(summary: &str) -> String {
 
 pub fn generate_rr_branch_name(summary: &str) -> String {
     let slug = slugify(summary);
-    format!("ps/rr/{}", slug)
+    format!("jw/ps/rr/{}", slug)
 }
 
 pub fn generate_branch_branch_name(summary: &str) -> String {
