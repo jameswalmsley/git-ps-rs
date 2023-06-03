@@ -18,6 +18,10 @@ following.
 
 To find details on the concept of the product and questions & answers in that space see [PRODUCT.md](PRODUCT.md).
 
+## Stateless Tracking
+
+This fork aims to implement stateless tracking without a ps-id in the commit messages.
+
 ## Development
 
 To find details on contributing and developing this project see [DEVELOPMENT.md](DEVELOPMENT.md)
