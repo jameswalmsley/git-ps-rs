@@ -4,6 +4,7 @@ pub mod integrate;
 pub mod list;
 pub mod pull;
 pub mod request_review;
+pub mod isolate;
 
 mod config_dto;
 mod get_config;

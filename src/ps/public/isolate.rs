@@ -1,5 +1,6 @@
 use super::super::super::ps;
 use super::super::private::cherry_picking;
+use super::super::private::config;
 use super::super::private::git;
 use super::super::private::hooks;
 use super::super::private::paths;
@@ -11,6 +12,7 @@ use std::result::Result;
 pub enum IsolateError {
     OpenGitRepositoryFailed(Box<dyn std::error::Error>),
     OpenGitConfigFailed(Box<dyn std::error::Error>),
+    GetConfigFailed(Box<dyn std::error::Error>),
     UncommittedChangesExistFailure(Box<dyn std::error::Error>),
     UncommittedChangesExist,
     GetPatchStackFailed(Box<dyn std::error::Error>),
@@ -60,6 +62,7 @@ impl std::fmt::Display for IsolateError {
         match self {
             Self::OpenGitRepositoryFailed(e) => write!(f, "failed to open git repository, {}", e),
             Self::OpenGitConfigFailed(e) => write!(f, "failed to open git config, {}", e),
+            Self::GetConfigFailed(e) => write!(f, "failed to get config, {}", e),
             Self::UncommittedChangesExistFailure(e) => {
                 write!(f, "checking for uncommitted changes failed, {}", e)
             }
@@ -113,6 +116,7 @@ impl std::error::Error for IsolateError {
         match self {
             Self::OpenGitRepositoryFailed(e) => Some(e.as_ref()),
             Self::OpenGitConfigFailed(e) => Some(e.as_ref()),
+            Self::GetConfigFailed(e) => Some(e.as_ref()),
             Self::UncommittedChangesExistFailure(e) => Some(e.as_ref()),
             Self::UncommittedChangesExist => None,
             Self::GetPatchStackFailed(e) => Some(e.as_ref()),
@@ -154,12 +158,18 @@ pub fn isolate(
     let repo = ps::private::git::create_cwd_repo()
         .map_err(|e| IsolateError::OpenGitRepositoryFailed(e.into()))?;
 
+    let repo_root_path = paths::repo_root_path(&repo)
+        .map_err(|e| IsolateError::GetRepoRootPathFailed(e.into()))?;
+    let repo_root_str = repo_root_path.to_str().ok_or(IsolateError::PathNotUtf8)?;
     let repo_gitdir_path = repo.path();
     let repo_gitdir_str = repo_gitdir_path.to_str().ok_or(IsolateError::PathNotUtf8)?;
-    let config =
+
+    let config = config::get_config(repo_root_str, repo_gitdir_str)
+        .map_err(|e| IsolateError::GetConfigFailed(e.into()))?;
+    let git_config =
         git2::Config::open_default().map_err(|e| IsolateError::OpenGitConfigFailed(e.into()))?;
 
-    if git::uncommitted_changes_exist(&repo)
+    if git::uncommitted_changes_exist(&repo, config.isolate.exclude_submodules, config.isolate.include_untracked)
         .map_err(|e| IsolateError::UncommittedChangesExistFailure(e.into()))?
     {
         return Err(IsolateError::UncommittedChangesExist);
@@ -192,7 +202,7 @@ pub fn isolate(
 
             cherry_picking::cherry_pick(
                 &repo,
-                &config,
+                &git_config,
                 cherry_pick_range.root_oid,
                 cherry_pick_range.leaf_oid,
                 branch_ref_name,

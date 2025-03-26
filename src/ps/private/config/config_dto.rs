@@ -2,6 +2,7 @@ use super::super::utils;
 use super::branch::BranchConfigDto;
 use super::fetch::FetchConfigDto;
 use super::integrate::IntegrateConfigDto;
+use super::isolate::IsolateConfigDto;
 use super::list::ListConfigDto;
 use super::pull::PullConfigDto;
 use super::request_review::RequestReviewConfigDto;
@@ -15,6 +16,7 @@ pub struct ConfigDto {
     pub fetch: Option<FetchConfigDto>,
     pub list: Option<ListConfigDto>,
     pub branch: Option<BranchConfigDto>,
+    pub isolate: Option<IsolateConfigDto>,
 }
 
 impl utils::Mergable for ConfigDto {
@@ -26,6 +28,7 @@ impl utils::Mergable for ConfigDto {
             fetch: utils::merge_option(&self.fetch, &b.fetch),
             list: utils::merge_option(&self.list, &b.list),
             branch: utils::merge_option(&self.branch, &b.branch),
+            isolate: utils::merge_option(&self.isolate, &b.isolate),
         }
     }
 }

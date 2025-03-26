@@ -4,8 +4,9 @@ use super::config_dto::ConfigDto;
 use super::fetch::FetchConfigDto;
 use super::integrate::IntegrateConfigDto;
 use super::list::{ColorWithAlternate, ListConfigDto};
+use super::isolate::IsolateConfigDto; // NEW
 use super::ps_config::{
-    PsConfig, PsFetchConfig, PsIntegrateConfig, PsListConfig, PsPullConfig, PsRequestReviewConfig,
+    PsConfig, PsFetchConfig, PsIntegrateConfig, PsIsolateConfig, PsListConfig, PsPullConfig, PsRequestReviewConfig, // NEW: PsIsolateConfig
 };
 use super::pull::PullConfigDto;
 use super::read_config_or_default::*;
@@ -68,6 +69,7 @@ fn apply_config_defaults(config_dto: &ConfigDto) -> PsConfig {
     let default_integrate_config = apply_integrate_config_defaults(&IntegrateConfigDto::default());
     let default_fetch_config = apply_fetch_config_defaults(&FetchConfigDto::default());
     let default_list_config = apply_list_config_defaults(&ListConfigDto::default());
+    let default_isolate_config = apply_isolate_config_defaults(&IsolateConfigDto::default()); // NEW
     PsConfig {
         request_review: config_dto
             .request_review
@@ -94,6 +96,11 @@ fn apply_config_defaults(config_dto: &ConfigDto) -> PsConfig {
             .as_ref()
             .map(apply_list_config_defaults)
             .unwrap_or(default_list_config),
+        isolate: config_dto // NEW
+            .isolate
+            .as_ref()
+            .map(apply_isolate_config_defaults)
+            .unwrap_or(default_isolate_config),
     }
 }
 
@@ -177,5 +184,13 @@ fn apply_list_config_defaults(list_config_dto: &ListConfigDto) -> PsListConfig {
                 color: Some(Color::RGB(109, 202, 231)),
                 alternate_color: None,
             }),
+    }
+}
+
+// NEW function
+fn apply_isolate_config_defaults(isolate_config_dto: &IsolateConfigDto) -> PsIsolateConfig {
+    PsIsolateConfig {
+        exclude_submodules: isolate_config_dto.exclude_submodules.unwrap_or(true), // Default to true (exclude submodules)
+        include_untracked: isolate_config_dto.include_untracked.unwrap_or(false), // Default to false (don't include untracked)
     }
 }

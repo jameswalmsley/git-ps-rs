@@ -22,10 +22,15 @@ impl std::error::Error for UncommittedChangesError {
     }
 }
 
-pub fn uncommitted_changes_exist(repo: &git2::Repository) -> Result<bool, UncommittedChangesError> {
+pub fn uncommitted_changes_exist(
+    repo: &git2::Repository,
+    exclude_submodules: bool,
+    include_untracked: bool,
+) -> Result<bool, UncommittedChangesError> {
     let mut status_options = git2::StatusOptions::default();
     status_options.show(git2::StatusShow::Workdir);
-    status_options.include_untracked(true);
+    status_options.include_untracked(include_untracked);
+    status_options.exclude_submodules(exclude_submodules);
     let statuses = repo
         .statuses(Some(&mut status_options))
         .map_err(UncommittedChangesError::StatusesFailed)?;

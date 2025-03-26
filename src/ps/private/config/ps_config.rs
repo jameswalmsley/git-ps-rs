@@ -7,6 +7,13 @@ pub struct PsConfig {
     pub integrate: PsIntegrateConfig,
     pub fetch: PsFetchConfig,
     pub list: PsListConfig,
+    pub isolate: PsIsolateConfig,
+}
+
+#[derive(Debug)]
+pub struct PsIsolateConfig {
+    pub exclude_submodules: bool,
+    pub include_untracked: bool,
 }
 
 #[derive(Debug)]
