@@ -25,7 +25,8 @@ impl std::error::Error for UncommittedChangesError {
 pub fn uncommitted_changes_exist(repo: &git2::Repository) -> Result<bool, UncommittedChangesError> {
     let mut status_options = git2::StatusOptions::default();
     status_options.show(git2::StatusShow::Workdir);
-    status_options.include_untracked(true);
+    status_options.include_untracked(false);
+    status_options.exclude_submodules(true);
     let statuses = repo
         .statuses(Some(&mut status_options))
         .map_err(UncommittedChangesError::StatusesFailed)?;
