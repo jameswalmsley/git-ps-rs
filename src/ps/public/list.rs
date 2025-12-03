@@ -307,11 +307,14 @@ pub fn list(color: bool) -> Result<(), ListError> {
     let list_of_patches = ps::get_patch_list(&repo, &patch_stack)
         .map_err(|e| ListError::GetPatchListFailed(e.into()))?;
 
-    let base_oid = patch_stack.base.target().unwrap();
+    let base_oid = match patch_stack.base.target() {
+        Some(oid) => oid,
+        None => return Ok(()),
+    };
 
     let patch_info_collection =
         state_computation::get_list_patch_info(&repo, base_oid, &cur_patch_stack_branch_name)
-            .unwrap();
+            .unwrap_or_default();
 
     let behind_count = get_behind_count(&repo, &patch_stack, &cur_patch_stack_branch_upstream_name);
 
