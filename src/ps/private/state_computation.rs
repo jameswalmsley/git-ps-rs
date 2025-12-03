@@ -230,7 +230,6 @@ pub fn get_list_branch_info(
 #[derive(Debug)]
 pub enum GetPatchInfoCollectionError {
     GetBranchHeadOid,
-    GetCommonAncestor(git::CommonAncestorError),
     GetCommits(git::GitError),
     GetRevisionOid(git2::Error),
     FindCommit(git2::Error),
@@ -241,7 +240,6 @@ impl std::fmt::Display for GetPatchInfoCollectionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::GetBranchHeadOid => write!(f, "get branch head oid failed"),
-            Self::GetCommonAncestor(e) => write!(f, "get common ancestor failed, {}", e),
             Self::GetCommits(e) => write!(f, "get commits failed, {}", e),
             Self::GetRevisionOid(e) => write!(f, "get revision oid failed, {}", e),
             Self::FindCommit(e) => write!(f, "find commit failed, {}", e),
@@ -254,7 +252,6 @@ impl std::error::Error for GetPatchInfoCollectionError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::GetBranchHeadOid => None,
-            Self::GetCommonAncestor(e) => Some(e),
             Self::GetCommits(e) => Some(e),
             Self::GetRevisionOid(e) => Some(e),
             Self::FindCommit(e) => Some(e),
@@ -281,8 +278,17 @@ pub fn get_patch_info_collection(
         .get()
         .target()
         .ok_or(GetPatchInfoCollectionError::GetBranchHeadOid)?;
-    let common_ancestor_oid = git::common_ancestor(repo, branch_head_oid, base_oid)
-        .map_err(GetPatchInfoCollectionError::GetCommonAncestor)?;
+    let common_ancestor_oid = match git::common_ancestor(repo, branch_head_oid, base_oid) {
+        Ok(oid) => oid,
+        Err(_) => {
+            // If there's no common ancestor, this branch isn't related to our patch stack,
+            // so there are no patches to find. Return an empty collection.
+            return Ok(PatchInfoCollection {
+                commit_count: 0,
+                patch_info_entries: Vec::new(),
+            });
+        }
+    };
 
     let revwalk = git::get_revs(
         repo,
