@@ -54,6 +54,7 @@ mod in_rebase_todos;
 mod line_to_rebase_todo;
 #[cfg(feature = "backup_cmd")]
 mod read_hashed_object;
+mod rebase_sign_arg;
 mod rebase_todo;
 pub mod signers;
 mod str_to_rebase_todos;
@@ -85,6 +86,7 @@ pub use in_rebase_todos::*;
 pub use line_to_rebase_todo::*;
 #[cfg(feature = "backup_cmd")]
 pub use read_hashed_object::*;
+pub use rebase_sign_arg::*;
 pub use rebase_todo::*;
 pub use str_to_rebase_todos::*;
 pub use uncommited_changes_exist::*;

@@ -307,8 +307,9 @@ pub fn integrate(
         .map_err(|e| IntegrateError::PatchIndexRangeOutOfBounds(e.into()))?;
 
     // add patch ids to commits in patch stack missing them
-    let git_config =
-        git2::Config::open_default().map_err(|e| IntegrateError::OpenGitConfigFailed(e.into()))?;
+    let git_config = repo
+        .config()
+        .map_err(|e| IntegrateError::OpenGitConfigFailed(e.into()))?;
     ps::add_patch_ids(&repo, &git_config)?;
 
     let repo_root_path = paths::repo_root_path(&repo)

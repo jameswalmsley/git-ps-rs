@@ -179,8 +179,9 @@ pub fn branch(
     end_patch_index: Option<usize>,
     given_branch_name_option: Option<String>,
 ) -> Result<(git2::Branch<'_>, git2::Oid), BranchError> {
-    let config =
-        git2::Config::open_default().map_err(|e| BranchError::OpenGitConfigFailed(e.into()))?;
+    let config = repo
+        .config()
+        .map_err(|e| BranchError::OpenGitConfigFailed(e.into()))?;
 
     ps::add_patch_ids(repo, &config)?;
 

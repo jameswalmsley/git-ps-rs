@@ -8,6 +8,8 @@ use super::super::public::list;
 #[derive(Debug)]
 pub enum PullError {
     RepositoryMissing,
+    GetGitConfigFailed,
+    GetCommitSigningConfigFailed(git::config::ConfigGetError),
     GetHeadBranchNameFailed,
     GetUpstreamBranchNameFailed,
     RebaseFailed(utils::ExecuteError),
@@ -22,6 +24,10 @@ impl std::fmt::Display for PullError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::RepositoryMissing => write!(f, "repository missing"),
+            Self::GetGitConfigFailed => write!(f, "get git config failed"),
+            Self::GetCommitSigningConfigFailed(e) => {
+                write!(f, "get commit signing config failed, {}", e)
+            }
             Self::GetHeadBranchNameFailed => write!(f, "get head branch name failed"),
             Self::GetUpstreamBranchNameFailed => write!(f, "get upstream branch name failed"),
             Self::RebaseFailed(e) => write!(f, "rebase failed, {}", e),
@@ -38,6 +44,8 @@ impl std::error::Error for PullError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::RepositoryMissing => None,
+            Self::GetGitConfigFailed => None,
+            Self::GetCommitSigningConfigFailed(e) => Some(e),
             Self::GetHeadBranchNameFailed => None,
             Self::GetUpstreamBranchNameFailed => None,
             Self::RebaseFailed(e) => Some(e),
@@ -52,6 +60,9 @@ impl std::error::Error for PullError {
 
 pub fn pull(color: bool) -> Result<(), PullError> {
     let repo = git::create_cwd_repo().map_err(|_| PullError::RepositoryMissing)?;
+    let repo_config = repo.config().map_err(|_| PullError::GetGitConfigFailed)?;
+    let rebase_sign_arg =
+        git::rebase_sign_arg(&repo_config).map_err(PullError::GetCommitSigningConfigFailed)?;
 
     let repo_root_path = paths::repo_root_path(&repo).map_err(PullError::GetRepoRootPathFailed)?;
     let repo_root_str = repo_root_path.to_str().ok_or(PullError::PathNotUtf8)?;
@@ -76,18 +87,17 @@ pub fn pull(color: bool) -> Result<(), PullError> {
     println!();
 
     println!("Rebasing...");
-    utils::execute(
-        "git",
-        &[
-            "rebase",
-            "--no-reapply-cherry-picks",
-            "--onto",
-            upstream_branch_name.as_str(),
-            upstream_branch_name.as_str(),
-            head_branch_shorthand,
-        ],
-    )
-    .map_err(PullError::RebaseFailed)?;
+    let mut rebase_args = vec!["rebase", "--no-reapply-cherry-picks"];
+    if let Some(arg) = rebase_sign_arg {
+        rebase_args.push(arg);
+    }
+    rebase_args.extend_from_slice(&[
+        "--onto",
+        upstream_branch_name.as_str(),
+        upstream_branch_name.as_str(),
+        head_branch_shorthand,
+    ]);
+    utils::execute("git", &rebase_args).map_err(PullError::RebaseFailed)?;
     println!();
 
     if config.pull.show_list_post_pull {

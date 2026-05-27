@@ -62,8 +62,9 @@ pub fn append(
 ) -> Result<(), AppendError> {
     let repo = git::create_cwd_repo().map_err(|e| AppendError::OpenRepositoryFailed(e.into()))?;
 
-    let config =
-        git2::Config::open_default().map_err(|e| AppendError::OpenGitConfigFailed(e.into()))?;
+    let config = repo
+        .config()
+        .map_err(|e| AppendError::OpenGitConfigFailed(e.into()))?;
 
     let branch = repo
         .find_branch(&branch_name, git2::BranchType::Local)

@@ -158,19 +158,24 @@ pub fn isolate(
     let repo = ps::private::git::create_cwd_repo()
         .map_err(|e| IsolateError::OpenGitRepositoryFailed(e.into()))?;
 
-    let repo_root_path = paths::repo_root_path(&repo)
-        .map_err(|e| IsolateError::GetRepoRootPathFailed(e.into()))?;
+    let repo_root_path =
+        paths::repo_root_path(&repo).map_err(|e| IsolateError::GetRepoRootPathFailed(e.into()))?;
     let repo_root_str = repo_root_path.to_str().ok_or(IsolateError::PathNotUtf8)?;
     let repo_gitdir_path = repo.path();
     let repo_gitdir_str = repo_gitdir_path.to_str().ok_or(IsolateError::PathNotUtf8)?;
 
     let config = config::get_config(repo_root_str, repo_gitdir_str)
         .map_err(|e| IsolateError::GetConfigFailed(e.into()))?;
-    let git_config =
-        git2::Config::open_default().map_err(|e| IsolateError::OpenGitConfigFailed(e.into()))?;
+    let git_config = repo
+        .config()
+        .map_err(|e| IsolateError::OpenGitConfigFailed(e.into()))?;
 
-    if git::uncommitted_changes_exist(&repo, config.isolate.exclude_submodules, config.isolate.include_untracked)
-        .map_err(|e| IsolateError::UncommittedChangesExistFailure(e.into()))?
+    if git::uncommitted_changes_exist(
+        &repo,
+        config.isolate.exclude_submodules,
+        config.isolate.include_untracked,
+    )
+    .map_err(|e| IsolateError::UncommittedChangesExistFailure(e.into()))?
     {
         return Err(IsolateError::UncommittedChangesExist);
     }

@@ -33,8 +33,9 @@ impl std::error::Error for IdError {
 pub fn id() -> Result<(), IdError> {
     let repo = git::create_cwd_repo().map_err(|e| IdError::Unhandled(e.into()))?;
 
-    let config =
-        git2::Config::open_default().map_err(|e| IdError::OpenGitConfigFailed(e.into()))?;
+    let config = repo
+        .config()
+        .map_err(|e| IdError::OpenGitConfigFailed(e.into()))?;
 
     ps::add_patch_ids(&repo, &config).map_err(|e| IdError::AddPatchIdsFailed(e.into()))
 }
